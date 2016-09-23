@@ -56,7 +56,7 @@ pwd=os.getcwd()
 
 startDate = datetime.date(2015, 5, 1)# Date I started
 today = endDate = datetime.date.today()
-tickers = ['NGVC']#,'CMG','BRK-B','ATRO','BIDU','ANIK','WETF','FRAN','RHT','LL','EGOV']
+tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','WETF','FRAN','RHT','LL','EGOV']
 
 
 # these are the constants required by the various tools.
@@ -156,21 +156,37 @@ for ticIdx in range(np.size(tickers)):
 	fig, ax = plt.subplots()
 	fig.subplots_adjust(bottom=0.2)
 	ax.xaxis.set_major_locator(mondays)
-	ax.xaxis.set_minor_locator(alldays)
+	#ax.xaxis.set_minor_locator(alldays)
 	ax.xaxis.set_major_formatter(weekFormatter)
 	#ax.xaxis.set_minor_formatter(dayFormatter)
-	quotes = quotes_historical_yahoo_ohlc(tickers[ticIdx], startDate, today)
+	
+	#Another way of getting stock data.
+	quotes = quotes_historical_yahoo_ohlc(tickers[ticIdx], startDate, today) # output format is: [datenum, open,high,low,close,volume] one date per row. 
 	#plot_day_summary(ax, quotes, ticksize=3)
-	pdb.set_trace()
-	candlestick_ohlc(ax, quotes,width=6)
 
-	ax.xaxis_date()
-	ax.autoscale_view()
-	plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
-	pdb.set_trace()
-	plt.show()
+	candlestick_ohlc(ax, quotes[-daysBack:-1],width=0.5)
+	ax.plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
+	ax.plot(finData.date[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
+	ax.set_title(tickers[ticIdx])
+	ax.legend(loc='best',fontsize=fs) 
+	ax.grid('on')
+	ax.tick_params(labelsize=fs)
+	ax.xaxis.label.set_fontsize(fs)
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_CandlestickPast%iDays.pdf' %daysBack)
+	plt.close()
+	#dateOordinal=[0 for i in range(np.size(finData.date[-daysBack:-1]))] # I need dates as a number
+	#quotes2=[[] for i in range(np.size(finData.date[-daysBack:-1]))] # I need dates as a number
+	#for dateIdx in range (np.size(finData.date[-daysBack:-1])): 
+		#dateOordinal[dateIdx]=finData.date[dateIdx].toordinal()
+		#quotes2[dateIdx]=[finData.date[dateIdx].toordinal(), finData.open[dateIdx],finData.high[dateIdx],finData.low[dateIdx],finData.close[dateIdx],finData.volume[dateIdx]]
 	
+
+	#ax.xaxis_date()
+	#ax.autoscale_view()
+	#plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
+	#plt.show()
 	
+	#pdb.set_trace()
 	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
 	axarr[0].set_title(tickers[ticIdx])
 	axarr[0].plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
@@ -178,7 +194,6 @@ for ticIdx in range(np.size(tickers)):
 	#axarr[0].plot(finData.date[-daysBack:-1],ma20[-daysBack:-1],'r',label='20 day MA')
 	axarr[0].plot(finData.date[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
 	#axarr[0].plot(finData.date[-daysBack:-1],ma200[-daysBack:-1],'y',label='200 day MA')
-	finance.candlestick2_ochl(axarr[0],finData.open[-daysBack:-1],finData.close[-daysBack:-1],finData.high[-daysBack:-1],finData.low[-daysBack:-1])# Plot the candlestick charts.
 	axarr[0].legend(loc=3,fontsize=fs)
 	axarr[0].set_ylabel('closing price & MAs',color='b')
 	for tl in axarr[0].get_yticklabels(): tl.set_color('b')
@@ -204,7 +219,6 @@ for ticIdx in range(np.size(tickers)):
 	axarr[1].grid('on')
 	axarr[2].grid('on')
 	axarr[3].grid('on')
-	pdb.set_trace()
 	plt.savefig(pwd+'/'+tickers[ticIdx]+'_past%iDays.pdf' %daysBack)
 	plt.close()
 	

@@ -12,6 +12,10 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 import pdb
+from matplotlib.finance import quotes_historical_yahoo_ohlc, candlestick_ohlc
+from matplotlib.dates import DateFormatter, WeekdayLocator,\
+    DayLocator, MONDAY
+
 #import FinanceFunctions as ff
 import FinanceFunctions2 as ff2
 import os
@@ -50,9 +54,9 @@ def backTest(orders,finData, moneyStart,commission): # run a simulation using th
 
 pwd=os.getcwd()
 
-startdate = datetime.date(2015, 5, 1)# Date I started
-today = enddate = datetime.date.today()
-tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','WETF','FRAN','RHT','LL','EGOV']
+startDate = datetime.date(2015, 5, 1)# Date I started
+today = endDate = datetime.date.today()
+tickers = ['NGVC']#,'CMG','BRK-B','ATRO','BIDU','ANIK','WETF','FRAN','RHT','LL','EGOV']
 
 
 # these are the constants required by the various tools.
@@ -71,7 +75,7 @@ if macdFast>macdSlow:
 
 for ticIdx in range(np.size(tickers)):
 
-	fh = finance.fetch_historical_yahoo(tickers[ticIdx], startdate, enddate)
+	fh = finance.fetch_historical_yahoo(tickers[ticIdx], startDate, endDate)
 # a numpy record array with fields: date, open, high, low, close, volume, adj_close)
 	finData = mlab.csv2rec(fh)
 	fh.close()
@@ -142,10 +146,73 @@ for ticIdx in range(np.size(tickers)):
 	plt.savefig(pwd+'/'+tickers[ticIdx]+'_computerOrders.pdf')
 	plt.close()
 	
+	#######################################################################################
+	# Now we plot only the X last days
+	daysBack=20
+	mondays = WeekdayLocator(MONDAY)        # major ticks on the mondays
+	alldays = DayLocator()              # minor ticks on the days
+	weekFormatter = DateFormatter('%b %d')  # e.g., Jan 12
+	dayFormatter = DateFormatter('%d')      # e.g., 12
+	fig, ax = plt.subplots()
+	fig.subplots_adjust(bottom=0.2)
+	ax.xaxis.set_major_locator(mondays)
+	ax.xaxis.set_minor_locator(alldays)
+	ax.xaxis.set_major_formatter(weekFormatter)
+	#ax.xaxis.set_minor_formatter(dayFormatter)
+	quotes = quotes_historical_yahoo_ohlc(tickers[ticIdx], startDate, today)
+	#plot_day_summary(ax, quotes, ticksize=3)
+	pdb.set_trace()
+	candlestick_ohlc(ax, quotes,width=6)
+
+	ax.xaxis_date()
+	ax.autoscale_view()
+	plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
+	pdb.set_trace()
+	plt.show()
 	
-	#Now we look at the performance in the past X many days
+	
+	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
+	axarr[0].set_title(tickers[ticIdx])
+	axarr[0].plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
+	axarr[0].plot(finData.date[-daysBack:-1],ma[-daysBack:-1],'g',label='%i day MA' % (movAvePeriods))
+	#axarr[0].plot(finData.date[-daysBack:-1],ma20[-daysBack:-1],'r',label='20 day MA')
+	axarr[0].plot(finData.date[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
+	#axarr[0].plot(finData.date[-daysBack:-1],ma200[-daysBack:-1],'y',label='200 day MA')
+	finance.candlestick2_ochl(axarr[0],finData.open[-daysBack:-1],finData.close[-daysBack:-1],finData.high[-daysBack:-1],finData.low[-daysBack:-1])# Plot the candlestick charts.
+	axarr[0].legend(loc=3,fontsize=fs)
+	axarr[0].set_ylabel('closing price & MAs',color='b')
+	for tl in axarr[0].get_yticklabels(): tl.set_color('b')
+
+	axarr[1].bar(finData.date[-daysBack:-1],macdDiff[-daysBack:-1],color='k')
+	# Make the y-axis label and tick labels match the line color.
+	axarr[1].set_ylabel('MACDdiff',color='k')
+	for tl in axarr[1].get_yticklabels(): tl.set_color('k')
+	
+	axarr[2].plot(finData.date[-daysBack:-1],fastStok[-daysBack:-1],color='k',label='fastSTO %K')
+	axarr[2].plot(finData.date[-daysBack:-1],stoD[-daysBack:-1],color='g',label='STO %D pers:'+str(stoDPeriods))
+	# Make the y-axis label and tick labels match the line color.
+	axarr[2].set_ylabel('STO%K and STO %d',color='k')
+	axarr[2].legend(loc=2,fontsize=fs)   
+	    
+	axarr[3].plot(finData.date[-daysBack:-1],rule1Orders[-daysBack:-1],'r')
+	# Make the y-axis label and tick labels match the line color.
+	axarr[3].set_ylabel('Rule #1 buy or sell',color='r')
+	axarr[3].set_ylim([-1.1,1.1])
+	for tl in axarr[3].get_yticklabels(): tl.set_color('r')
+	
+	axarr[0].grid('on')
+	axarr[1].grid('on')
+	axarr[2].grid('on')
+	axarr[3].grid('on')
+	pdb.set_trace()
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_past%iDays.pdf' %daysBack)
+	plt.close()
+	
+	#########################################################################################
+	
+	#Now we look at the performance in the past, since the dates entered above. 
 	moneyStart=10000# Dollars to start with
-	commission=6.99 # transaction dollars	
+	commission=8.99 # transaction dollars	
 	
 	netWorthRule1,actionsRule1 = backTest(rule1Orders,finData, moneyStart,commission)	# Rule 1
 	netWorthGC,actionsGC = backTest(goldOrders,finData, moneyStart,commission)	 # Gold Cross

@@ -471,7 +471,7 @@ def buyOrSell(rData,macdFast,macdSlow,macdSmoothing,stoLength,stoDPeriods,movAve
 	
 	
 	# Rule 1 technique
-	numPeriods=np.size(rData.date)
+	numPeriods=np.size(rData.close)
 	rule1Orders=0*np.array(range(numPeriods))# assign rule #1 orders to 0 (do nothing)
 	
 	MACDVal, EMAfast, EMAslow, MACDSign, MACDdiff=MACD(rData, macdFast, macdSlow, macdSmoothing)

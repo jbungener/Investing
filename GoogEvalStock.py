@@ -1,4 +1,4 @@
-#!/Users/jbungener/Python/anaconda3.2/bin/python
+#!/Users/jbungener/anaconda/bin/python
 #!##/usr/bin/python
 
 
@@ -15,8 +15,8 @@ import pdb
 from matplotlib.finance import quotes_historical_yahoo_ohlc, candlestick_ohlc
 from matplotlib.dates import DateFormatter, WeekdayLocator,\
     DayLocator, MONDAY
-
-#import FinanceFunctions as ff
+    
+from get_google_data import get_google_data
 import FinanceFunctions2 as ff2
 import os
 
@@ -25,8 +25,8 @@ pwd=os.getcwd()
 
 startDate = datetime.date(2015, 5, 1)# Date I started
 today = endDate = datetime.date.today()
-tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','RHT',]#'WETF','FRAN','LL','EGOV']
-
+tickers = 	['NGVC']#,'CMG','BRK-B','ATRO'  ,'BIDU'  ,'ANIK' ,'RHT',]#'WETF','FRAN','LL','EGOV']
+exch=		['NYSE']#,'NYSE','NYSE','NASDAQ','NASDAQ','NASDAQ','NYSE']# This much match the symbol above it. 
 
 # these are the constants required by the various tools.
 macdFast=8 #Rule#1:8   def:12
@@ -37,6 +37,8 @@ stoLength=14
 stoDPeriods=5 # %D periods Rule#1 recommends 5, default is 3
 movAvePeriods=10 # number of periods for a moving average
 fs=6
+period=1*60*60# every 1 hours in seconds
+window=1000# Number of days back to go. This forces Google to use the most possible (1 entire year back)
 
 
 if macdFast>macdSlow:
@@ -44,13 +46,9 @@ if macdFast>macdSlow:
 
 for ticIdx in range(np.size(tickers)):
 
-	fh = finance.fetch_historical_yahoo(tickers[ticIdx], startDate, endDate)
-# a numpy record array with fields: date, open, high, low, close, volume, adj_close)
-	finData = mlab.csv2rec(fh)
-	fh.close()
-	finData.sort()
+	finData=get_google_data(tickers[ticIdx],period,window,exch[ticIdx])
 
-	timeDelt=finData.date[-1]-finData.date[1]
+	timeDelt=finData.index[-1]-finData.index[1]
 	if timeDelt.days<=(macdSlow+macdSmoothing+1): # not enough data to calculate the MACD
 		exit (sprintf('ERROR: not enough days to calculate the MACD timeDelta=:%i days',int(timeDelt.days)))
 		
@@ -65,31 +63,31 @@ for ticIdx in range(np.size(tickers)):
 	
 	#fig , ax1 = plt.figure(facecolor='white')
 	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
-	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
-	axarr[0].plot(finData.date,finData.close,'b',label='Close')
-	axarr[0].plot(finData.date,ma,'g',label='%i day MA' % (movAvePeriods))
-	axarr[0].plot(finData.date,ma20,'r',label='20 day MA')
-	axarr[0].plot(finData.date,ma50,'k',label='50 day MA')
-	axarr[0].plot(finData.date,ma200,'y',label='200 day MA')
+	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.index[-1].strftime('%Y-%m-%d'))
+	axarr[0].plot(finData.index,finData.close,'b',label='Close')
+	axarr[0].plot(finData.index,ma,'g',label='%i day MA' % (movAvePeriods))
+	axarr[0].plot(finData.index,ma20,'r',label='20 day MA')
+	axarr[0].plot(finData.index,ma50,'k',label='50 day MA')
+	axarr[0].plot(finData.index,ma200,'y',label='200 day MA')
 	axarr[0].legend(loc=3,fontsize=fs)
 	# Make the y-axis label and tick labels match the line color.
 	axarr[0].set_ylabel('closing price & MAs',color='b')
 	for tl in axarr[0].get_yticklabels(): tl.set_color('b')
 
-	axarr[1].bar(finData.date,macdDiff,color='k')
+	axarr[1].bar(finData.index,macdDiff,color='k')
 	# Make the y-axis label and tick labels match the line color.
 	axarr[1].set_ylabel('MACDdiff',color='k')
 	for tl in axarr[1].get_yticklabels(): tl.set_color('k')
 	
-	axarr[2].plot(finData.date,fastStok,color='k',label='fastSTO %K')
-	axarr[2].plot(finData.date,stoD,color='g',label='STO %D pers:'+str(stoDPeriods))
+	axarr[2].plot(finData.index,fastStok,color='k',label='fastSTO %K')
+	axarr[2].plot(finData.index,stoD,color='g',label='STO %D pers:'+str(stoDPeriods))
 	# Make the y-axis label and tick labels match the line color.
 	axarr[2].set_ylabel('STO%K and STO %d',color='k')
 	axarr[2].legend(loc=2,fontsize=fs)
 	
     
 	    
-	axarr[3].plot(finData.date,rule1Orders,'r')
+	axarr[3].plot(finData.index,rule1Orders,'r')
 	# Make the y-axis label and tick labels match the line color.
 	axarr[3].set_ylabel('buy or sell',color='r')
 	for tl in axarr[3].get_yticklabels(): tl.set_color('r')
@@ -132,20 +130,20 @@ for ticIdx in range(np.size(tickers)):
 	quotes = quotes_historical_yahoo_ohlc(tickers[ticIdx], startDate, today) # output format is: [datenum, open,high,low,close,volume] one date per row. 
 	
 	candlestick_ohlc(ax, quotes[-daysBack:-1],width=0.5)
-	ax.plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
-	ax.plot(finData.date[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
-	ax.set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
+	ax.plot(finData.index[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
+	ax.plot(finData.index[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
+	ax.set_title(tickers[ticIdx]+' Last Date:'+finData.index[-1].strftime('%Y-%m-%d'))
 	ax.legend(loc='best',fontsize=fs) 
 	ax.grid('on')
 	ax.tick_params(labelsize=fs)
 	ax.xaxis.label.set_fontsize(fs)
 	plt.savefig(pwd+'/'+tickers[ticIdx]+'_CandlestickPast%iDays.pdf' %daysBack)
 	plt.close()
-	#dateOordinal=[0 for i in range(np.size(finData.date[-daysBack:-1]))] # I need dates as a number
-	#quotes2=[[] for i in range(np.size(finData.date[-daysBack:-1]))] # I need dates as a number
-	#for dateIdx in range (np.size(finData.date[-daysBack:-1])): 
-		#dateOordinal[dateIdx]=finData.date[dateIdx].toordinal()
-		#quotes2[dateIdx]=[finData.date[dateIdx].toordinal(), finData.open[dateIdx],finData.high[dateIdx],finData.low[dateIdx],finData.close[dateIdx],finData.volume[dateIdx]]
+	#dateOordinal=[0 for i in range(np.size(finData.index[-daysBack:-1]))] # I need dates as a number
+	#quotes2=[[] for i in range(np.size(finData.index[-daysBack:-1]))] # I need dates as a number
+	#for dateIdx in range (np.size(finData.index[-daysBack:-1])): 
+		#dateOordinal[dateIdx]=finData.index[dateIdx].toordinal()
+		#quotes2[dateIdx]=[finData.index[dateIdx].toordinal(), finData.open[dateIdx],finData.high[dateIdx],finData.low[dateIdx],finData.close[dateIdx],finData.volume[dateIdx]]
 	
 
 	#ax.xaxis_date()
@@ -155,28 +153,28 @@ for ticIdx in range(np.size(tickers)):
 	
 	#pdb.set_trace()
 	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
-	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
-	axarr[0].plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
-	axarr[0].plot(finData.date[-daysBack:-1],ma[-daysBack:-1],'g',label='%i day MA' % (movAvePeriods))
-	#axarr[0].plot(finData.date[-daysBack:-1],ma20[-daysBack:-1],'r',label='20 day MA')
-	axarr[0].plot(finData.date[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
-	#axarr[0].plot(finData.date[-daysBack:-1],ma200[-daysBack:-1],'y',label='200 day MA')
+	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.index[-1].strftime('%Y-%m-%d'))
+	axarr[0].plot(finData.index[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
+	axarr[0].plot(finData.index[-daysBack:-1],ma[-daysBack:-1],'g',label='%i day MA' % (movAvePeriods))
+	#axarr[0].plot(finData.index[-daysBack:-1],ma20[-daysBack:-1],'r',label='20 day MA')
+	axarr[0].plot(finData.index[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
+	#axarr[0].plot(finData.index[-daysBack:-1],ma200[-daysBack:-1],'y',label='200 day MA')
 	axarr[0].legend(loc=3,fontsize=fs)
 	axarr[0].set_ylabel('closing price & MAs',color='b')
 	for tl in axarr[0].get_yticklabels(): tl.set_color('b')
 
-	axarr[1].bar(finData.date[-daysBack:-1],macdDiff[-daysBack:-1],color='k')
+	axarr[1].bar(finData.index[-daysBack:-1],macdDiff[-daysBack:-1],color='k')
 	# Make the y-axis label and tick labels match the line color.
 	axarr[1].set_ylabel('MACDdiff',color='k')
 	for tl in axarr[1].get_yticklabels(): tl.set_color('k')
 	
-	axarr[2].plot(finData.date[-daysBack:-1],fastStok[-daysBack:-1],color='k',label='fastSTO %K')
-	axarr[2].plot(finData.date[-daysBack:-1],stoD[-daysBack:-1],color='g',label='STO %D pers:'+str(stoDPeriods))
+	axarr[2].plot(finData.index[-daysBack:-1],fastStok[-daysBack:-1],color='k',label='fastSTO %K')
+	axarr[2].plot(finData.index[-daysBack:-1],stoD[-daysBack:-1],color='g',label='STO %D pers:'+str(stoDPeriods))
 	# Make the y-axis label and tick labels match the line color.
 	axarr[2].set_ylabel('STO%K and STO %d',color='k')
 	axarr[2].legend(loc=2,fontsize=fs)   
 	    
-	axarr[3].plot(finData.date[-daysBack:-1],rule1Orders[-daysBack:-1],'r')
+	axarr[3].plot(finData.index[-daysBack:-1],rule1Orders[-daysBack:-1],'r')
 	# Make the y-axis label and tick labels match the line color.
 	axarr[3].set_ylabel('Rule #1 buy or sell',color='r')
 	axarr[3].set_ylim([-1.1,1.1])
@@ -201,20 +199,20 @@ for ticIdx in range(np.size(tickers)):
 			
 	
 	fig, axarr = plt.subplots(3, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
-	axarr[0].plot(finData.date,finData.close,'b',label='Close')
-	axarr[0].plot(finData.date,ma,'g',label='%i day MA' % (movAvePeriods))
-	axarr[0].plot(finData.date,ma20,'r',label='20 day MA')
-	axarr[0].plot(finData.date,ma50,'k',label='50 day MA')
-	axarr[0].plot(finData.date,ma200,'y',label='200 day MA')
-	axarr[1].plot(finData.date,netWorthRule1,'k',label='netWorth Rule1')
-	axarr[1].plot(finData.date,netWorthGC,'y',label='netWorth Gold Cross')
-	axarr[1].plot(finData.date,netWorthSC,'g',label='netWorth Silver Cross')
-	axarr[2].plot(finData.date,actionsRule1,'ok',label='Rule1 Action taken')
-	axarr[2].plot(finData.date,actionsGC,'*y',label='Gold Cross Action taken')
-	axarr[2].plot(finData.date,actionsSC,'sg',label='Silver Cross Action taken')
-	axarr[2].plot(finData.date,rule1Orders,'k',label='Rule 1 Order')
-	axarr[2].plot(finData.date,goldOrders,'y',label='Gold Cross Order')
-	axarr[2].plot(finData.date,silverOrders,'g',label='Silver Cross Order')
+	axarr[0].plot(finData.index,finData.close,'b',label='Close')
+	axarr[0].plot(finData.index,ma,'g',label='%i day MA' % (movAvePeriods))
+	axarr[0].plot(finData.index,ma20,'r',label='20 day MA')
+	axarr[0].plot(finData.index,ma50,'k',label='50 day MA')
+	axarr[0].plot(finData.index,ma200,'y',label='200 day MA')
+	axarr[1].plot(finData.index,netWorthRule1,'k',label='netWorth Rule1')
+	axarr[1].plot(finData.index,netWorthGC,'y',label='netWorth Gold Cross')
+	axarr[1].plot(finData.index,netWorthSC,'g',label='netWorth Silver Cross')
+	axarr[2].plot(finData.index,actionsRule1,'ok',label='Rule1 Action taken')
+	axarr[2].plot(finData.index,actionsGC,'*y',label='Gold Cross Action taken')
+	axarr[2].plot(finData.index,actionsSC,'sg',label='Silver Cross Action taken')
+	axarr[2].plot(finData.index,rule1Orders,'k',label='Rule 1 Order')
+	axarr[2].plot(finData.index,goldOrders,'y',label='Gold Cross Order')
+	axarr[2].plot(finData.index,silverOrders,'g',label='Silver Cross Order')
 	axarr[2].set_ylim([-1.1,1.1])
 	strTitle=tickers[ticIdx]+' with result Rule1=%i, GoldCross=%i, SilverCross=%i, started with %i'% (netWorthRule1[-1],netWorthGC[-1],netWorthSC[-1],moneyStart)
 	axarr[0].set_title(strTitle)

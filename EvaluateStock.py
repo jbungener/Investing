@@ -56,7 +56,7 @@ pwd=os.getcwd()
 
 startDate = datetime.date(2015, 5, 1)# Date I started
 today = endDate = datetime.date.today()
-tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','WETF','FRAN','RHT','LL','EGOV']
+tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','RHT',]#'WETF','FRAN','LL','EGOV']
 
 
 # these are the constants required by the various tools.
@@ -96,7 +96,7 @@ for ticIdx in range(np.size(tickers)):
 	
 	#fig , ax1 = plt.figure(facecolor='white')
 	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
-	axarr[0].set_title(tickers[ticIdx])
+	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
 	axarr[0].plot(finData.date,finData.close,'b',label='Close')
 	axarr[0].plot(finData.date,ma,'g',label='%i day MA' % (movAvePeriods))
 	axarr[0].plot(finData.date,ma20,'r',label='20 day MA')
@@ -138,7 +138,6 @@ for ticIdx in range(np.size(tickers)):
 	axarr[1].grid('on')
 	axarr[2].grid('on')
 	axarr[3].grid('on')
-	
 	axarr[0].text(0.05, 0.95, textString, transform=axarr[0].transAxes, fontsize=8,
         verticalalignment='top', bbox=props)
 
@@ -149,6 +148,7 @@ for ticIdx in range(np.size(tickers)):
 	#######################################################################################
 	# Now we plot only the X last days
 	daysBack=20
+	
 	mondays = WeekdayLocator(MONDAY)        # major ticks on the mondays
 	alldays = DayLocator()              # minor ticks on the days
 	weekFormatter = DateFormatter('%b %d')  # e.g., Jan 12
@@ -158,16 +158,14 @@ for ticIdx in range(np.size(tickers)):
 	ax.xaxis.set_major_locator(mondays)
 	#ax.xaxis.set_minor_locator(alldays)
 	ax.xaxis.set_major_formatter(weekFormatter)
-	#ax.xaxis.set_minor_formatter(dayFormatter)
 	
 	#Another way of getting stock data.
 	quotes = quotes_historical_yahoo_ohlc(tickers[ticIdx], startDate, today) # output format is: [datenum, open,high,low,close,volume] one date per row. 
-	#plot_day_summary(ax, quotes, ticksize=3)
-
+	
 	candlestick_ohlc(ax, quotes[-daysBack:-1],width=0.5)
 	ax.plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
 	ax.plot(finData.date[-daysBack:-1],ma50[-daysBack:-1],'k',label='50 day MA')
-	ax.set_title(tickers[ticIdx])
+	ax.set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
 	ax.legend(loc='best',fontsize=fs) 
 	ax.grid('on')
 	ax.tick_params(labelsize=fs)
@@ -188,7 +186,7 @@ for ticIdx in range(np.size(tickers)):
 	
 	#pdb.set_trace()
 	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
-	axarr[0].set_title(tickers[ticIdx])
+	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
 	axarr[0].plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
 	axarr[0].plot(finData.date[-daysBack:-1],ma[-daysBack:-1],'g',label='%i day MA' % (movAvePeriods))
 	#axarr[0].plot(finData.date[-daysBack:-1],ma20[-daysBack:-1],'r',label='20 day MA')

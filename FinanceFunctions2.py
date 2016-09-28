@@ -514,3 +514,35 @@ def buyOrSell(rData,macdFast,macdSlow,macdSmoothing,stoLength,stoDPeriods,movAve
 
 	return rule1Orders,goldOrders,silverOrders,np.array(MACDdiff),fastStok,stoD,ma,ma20,ma50,ma200
 #############################################################
+
+#######################################################################################
+def backTest(orders,finData, moneyStart,commission): # run a simulation using the available data. 
+
+	money=moneyStart# Dollars to start with
+	nShares=0 # we start with 0 shares
+	actions=[0 for i in range (np.size(orders))]
+	netWorth=[0 for i in range (np.size(orders))]
+	
+	for dayIdx in range(np.size(orders)-1): # skip the last day b/c we would sell the last day anyways to get the Money amount. 
+		netWorth[dayIdx]=money+nShares*finData.open[dayIdx+1]
+		#start trading
+		if orders[dayIdx]==0: continue
+		elif orders[dayIdx]==-1 and nShares==0: continue # if sell and we have not bouhgt anything then do nothing
+		elif orders[dayIdx]==1 and nShares>0: continue # If order is to buy and we already have bought.
+		elif orders[dayIdx]==-1 and nShares>0: # need to sell
+			actions[dayIdx]=-1
+			money=money+nShares*finData.open[dayIdx+1]-commission # we would sell the next morning
+			nShares=0	
+		elif orders[dayIdx]==1 and nShares==0: # need to buy
+			actions[dayIdx]=1
+			nShares= int(money/finData.open[dayIdx+1]) # int acts as a floor. So e buy the number of shares we can with the money we have. 
+			money=money-nShares*finData.open[dayIdx+1]-commission
+		else:
+			exit('Error in the if else logic for buying and selling')
+	#Last day:
+	if nShares>0:	money=money+nShares*finData.open[dayIdx+1]-commission
+	netWorth[-1]=money
+	return netWorth,actions
+
+#######################################################################################
+

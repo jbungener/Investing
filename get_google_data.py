@@ -28,10 +28,10 @@ def get_google_data(symbol, period, window, exch = 'NYSE'):
             ind[i] = anchor_time +dt.timedelta(seconds = (period * int(df['DATE'].ix[i])))
     df.index = ind
         
-    #df=df.drop('DATE', 1)
+    df=df.drop('DATE', 1)
 
-    #for column in df.columns:                #shitty implementation because to_numeric is pd but does not accept df
-    #    df[column]=pd.to_numeric(df[column])
+    for column in df.columns:                #shitty implementation because to_numeric is pd but does not accept df
+       df[column]=pd.to_numeric(df[column])
     df.columns = [x.lower() for x in df.columns] # make all the column names to lower case.
-    df.date=ind 
+    
     return df

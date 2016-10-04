@@ -47,7 +47,7 @@ if macdFast>macdSlow:
 for ticIdx in range(np.size(tickers)):
 
 	finData=get_google_data(tickers[ticIdx],period,window,exch[ticIdx])
-
+	pdb.set_trace()
 	timeDelt=finData.index[-1]-finData.index[1]
 	if timeDelt.days<=(macdSlow+macdSmoothing+1): # not enough data to calculate the MACD
 		exit (sprintf('ERROR: not enough days to calculate the MACD timeDelta=:%i days',int(timeDelt.days)))
@@ -109,7 +109,7 @@ for ticIdx in range(np.size(tickers)):
         verticalalignment='top', bbox=props)
 
 
-	plt.savefig(pwd+'/'+tickers[ticIdx]+'_computerOrders.pdf')
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_GoogcomputerOrders.pdf')
 	plt.close()
 	
 	#######################################################################################
@@ -137,7 +137,7 @@ for ticIdx in range(np.size(tickers)):
 	ax.grid('on')
 	ax.tick_params(labelsize=fs)
 	ax.xaxis.label.set_fontsize(fs)
-	plt.savefig(pwd+'/'+tickers[ticIdx]+'_CandlestickPast%iDays.pdf' %daysBack)
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_GoogCandlestickPast%iDays.pdf' %daysBack)
 	plt.close()
 	#dateOordinal=[0 for i in range(np.size(finData.index[-daysBack:-1]))] # I need dates as a number
 	#quotes2=[[] for i in range(np.size(finData.index[-daysBack:-1]))] # I need dates as a number
@@ -184,7 +184,7 @@ for ticIdx in range(np.size(tickers)):
 	axarr[1].grid('on')
 	axarr[2].grid('on')
 	axarr[3].grid('on')
-	plt.savefig(pwd+'/'+tickers[ticIdx]+'_past%iDays.pdf' %daysBack)
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_Googpast%iDays.pdf' %daysBack)
 	plt.close()
 	
 	#########################################################################################
@@ -226,7 +226,7 @@ for ticIdx in range(np.size(tickers)):
 	axarr[0].legend(loc=3,fontsize=fs)
 	axarr[1].legend(loc=6,fontsize=fs)
 	axarr[2].legend(loc=6,fontsize=fs)
-	plt.savefig(pwd+'/'+tickers[ticIdx]+'_MoneyMade.pdf')
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_GoogMoneyMade.pdf')
 	plt.close()
 
 	

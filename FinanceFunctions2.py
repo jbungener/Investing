@@ -492,27 +492,52 @@ def buyOrSell(rData,macdFast,macdSlow,macdSmoothing,stoLength,stoDPeriods,movAve
 			rule1Orders[i]=1
 		elif ordSell[i]:
 			rule1Orders[i]=-1
-			
-#	Golden Cross and Silver Cross technique		
-# Golden cross is buy when MA50>Ma200, sell when golden death Ma50<Ma200
-# silver cross is buy when MA20>Ma50, sell when golden death Ma20<Ma50
+	
 	ma20=np.array(MA(rData, 20))
 	ma50=np.array(MA(rData, 50))
 	ma200=np.array(MA(rData, 200))
-	goldOrders=0*np.array(range(numPeriods))# assign golden cross orders to 0 (do nothing)
-	silverOrders=0*np.array(range(numPeriods))# assign silver cross orders to 0 (do nothing)
-	for i in range(numPeriods):
-		if ma50[i]>ma200[i]:
-			goldOrders[i]=1 # gold cross says buy
-		elif ma50[i]<ma200[i]:
-			goldOrders[i]=-1 # gold cross says sell
-		if ma20[i]>ma50[i]:
-			silverOrders[i]=1 # silver cross says buy
-		if ma20[i]<ma50[i]:
-			silverOrders[i]=-1 # silver cross says sell
 			
+#	Golden Cross and Silver Cross technique		Doesn't seem to work on daily trades for stocks
+# Golden cross is buy when MA50>Ma200, sell when golden death Ma50<Ma200
+# silver cross is buy when MA20>Ma50, sell when golden death Ma20<Ma50
+#	goldOrders=0*np.array(range(numPeriods))# assign golden cross orders to 0 (do nothing)
+#	silverOrders=0*np.array(range(numPeriods))# assign silver cross orders to 0 (do nothing)
+#	for i in range(numPeriods):
+#		if ma50[i]>ma200[i]:
+#			goldOrders[i]=1 # gold cross says buy
+#		elif ma50[i]<ma200[i]:
+#			goldOrders[i]=-1 # gold cross says sell
+#		if ma20[i]>ma50[i]:
+#			silverOrders[i]=1 # silver cross says buy
+#		if ma20[i]<ma50[i]:
+#			silverOrders[i]=-1 # silver cross says sell
 
-	return rule1Orders,goldOrders,silverOrders,np.array(MACDdiff),fastStok,stoD,ma,ma20,ma50,ma200
+# Base buys on percK stochastic values 
+#Also base on %K with Hook and above the price that caused the hook. 
+	percKBuy=50
+	percKSell=50
+	percKOrders=0*np.array(range(numPeriods))# assign orders to 0 (do nothing)
+	percKHook=0*np.array(range(numPeriods))# assign orders to 0 (do nothing)
+	HookPrice=0*np.array(range(numPeriods))# assign orders to 0 (do nothing)
+	
+	for i in range(numPeriods):
+		if fastStok[i]>percKBuy:
+			percKOrders[i]=1
+		elif fastStok[i]<percKSell:
+			percKOrders[i]=-1
+			
+	for i in range(2,numPeriods):
+		prevDelta=fastStok[i-1]-fastStok[i-2]
+		currDelta=fastStok[i]-fastStok[i-1]
+		if prevDelta<0 and currDelta>0: # we have a (+) hook
+			percKHook[i]=1
+			HookPrice[i]=rData.high[i] # set the entry price at the high of the day that caused the hook. 
+		elif prevDelta>0 and currDelta<0: # we have a (-) hook
+			percKHook[i]=-1
+			HookPrice[i]=rData.low[i] # set the exit price at the low of the day that caused the hook. 
+			
+	#pdb.set_trace()
+	return rule1Orders,percKOrders,percKHook,HookPrice,np.array(MACDdiff),fastStok,stoD,ma,ma20,ma50,ma200
 #############################################################
 
 #######################################################################################
@@ -542,6 +567,37 @@ def backTest(orders,finData, moneyStart,commission): # run a simulation using th
 	#Last day:
 	if nShares>0:	money=money+nShares*finData.open[dayIdx+1]-commission
 	netWorth[-1]=money
+	return netWorth,actions
+
+#######################################################################################
+
+#######################################################################################
+def backTestWPrice(orders,orderPrice, finData, moneyStart,commission): # run a simulation using the available data with both orders and prices to execute at. 
+
+	money=moneyStart# Dollars to start with
+	nShares=0 # we start with 0 shares
+	actions=[0 for i in range (np.size(orders))]
+	netWorth=[0 for i in range (np.size(orders))]
+	
+	for dayIdx in range(np.size(orders)-1): # skip the last day b/c we would sell the last day anyways to get the Money amount. 
+		netWorth[dayIdx]=money+nShares*finData.open[dayIdx+1]
+		#start trading
+		if orders[dayIdx]==0: continue
+		elif orders[dayIdx]==-1 and nShares==0: continue # if sell and we have not bouhgt anything then do nothing
+		elif orders[dayIdx]==1 and nShares>0: continue # If order is to buy and we already have bought.
+		elif orders[dayIdx]==-1 and nShares>0 and finData.close[dayIdx] < orderPrice[dayIdx] : # need to sell
+			actions[dayIdx]=-1
+			money=money+nShares*finData.open[dayIdx+1]-commission # we would sell the next morning
+			nShares=0	
+		elif orders[dayIdx]==1 and nShares==0 and finData.close[dayIdx] > orderPrice[dayIdx]: # need to buy
+			actions[dayIdx]=1
+			nShares= int(money/finData.open[dayIdx+1]) # int acts as a floor. So we buy the number of shares we can with the money we have. 
+			money=money-nShares*finData.open[dayIdx+1]-commission
+		
+	#Last day:
+	if nShares>0:	money=money+nShares*finData.open[dayIdx+1]-commission
+	netWorth[-1]=money
+	#pdb.set_trace()
 	return netWorth,actions
 
 #######################################################################################

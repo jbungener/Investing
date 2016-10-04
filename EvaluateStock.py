@@ -25,7 +25,7 @@ pwd=os.getcwd()
 
 startDate = datetime.date(2015, 5, 1)# Date I started
 today = endDate = datetime.date.today()
-tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','RHT',]#'WETF','FRAN','LL','EGOV']
+tickers = ['NGVC','CMG','BRK-B','ATRO','BIDU','ANIK','RHT','WETF','FRAN','LL','EGOV']
 
 
 # these are the constants required by the various tools.
@@ -56,7 +56,25 @@ for ticIdx in range(np.size(tickers)):
 		
 		
  #MACD, EMAfast, EMAslow, MACDsign, MACDdiff=ff2.MACD(finData, n_slow, n_fast,macdSmoothing):  
-	rule1Orders,goldOrders,silverOrders,macdDiff,fastStok,stoD,ma,ma20,ma50,ma200=ff2.buyOrSell(finData,macdFast,macdSlow,macdSmoothing,stoLength,stoDPeriods,movAvePeriods)
+	rule1Orders,ordersTechnik1,ordersTechnik2,priceTechnik2,macdDiff,fastStok,stoD,ma,ma20,ma50,ma200=ff2.buyOrSell(finData,macdFast,macdSlow,macdSmoothing,stoLength,stoDPeriods,movAvePeriods)
+	
+	#plot to check the hook and hook Price
+	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
+	axarr[0].set_title(tickers[ticIdx]+'Check of Hook and Price Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
+	axarr[0].plot(finData.date,finData.close,'b',label='Close')
+	axarr[0].plot(finData.date,finData.high,'g',label='High')
+	axarr[0].plot(finData.date,finData.low,'r',label='low')
+	axarr[0].legend(loc=3,fontsize=fs)
+	axarr[1].plot(finData.date,fastStok,color='k',label='fastSTO %K')
+	axarr[1].plot(finData.date,stoD,color='g',label='STO %D pers:'+str(stoDPeriods))
+	axarr[1].legend(loc=3,fontsize=fs)
+	axarr[2].plot(finData.date,priceTechnik2,'k',label='Entry/Exit price')
+	axarr[2].set_ylabel('Entry/Exit price')
+	axarr[3].plot(finData.date,ordersTechnik2,'k',label='technique2 Orders')
+	axarr[3].set_ylabel('technique 2 orders')
+	plt.savefig(pwd+'/'+tickers[ticIdx]+'_Technique2.pdf')
+	plt.close()
+	
 	
 	latestMacdDiff=np.array(macdDiff)[-1]
 	latestStok=fastStok[-1]
@@ -141,19 +159,7 @@ for ticIdx in range(np.size(tickers)):
 	ax.xaxis.label.set_fontsize(fs)
 	plt.savefig(pwd+'/'+tickers[ticIdx]+'_CandlestickPast%iDays.pdf' %daysBack)
 	plt.close()
-	#dateOordinal=[0 for i in range(np.size(finData.date[-daysBack:-1]))] # I need dates as a number
-	#quotes2=[[] for i in range(np.size(finData.date[-daysBack:-1]))] # I need dates as a number
-	#for dateIdx in range (np.size(finData.date[-daysBack:-1])): 
-		#dateOordinal[dateIdx]=finData.date[dateIdx].toordinal()
-		#quotes2[dateIdx]=[finData.date[dateIdx].toordinal(), finData.open[dateIdx],finData.high[dateIdx],finData.low[dateIdx],finData.close[dateIdx],finData.volume[dateIdx]]
 	
-
-	#ax.xaxis_date()
-	#ax.autoscale_view()
-	#plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
-	#plt.show()
-	
-	#pdb.set_trace()
 	fig, axarr = plt.subplots(4, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
 	axarr[0].set_title(tickers[ticIdx]+' Last Date:'+finData.date[-1].strftime('%Y-%m-%d'))
 	axarr[0].plot(finData.date[-daysBack:-1],finData.close[-daysBack:-1],'b',label='Close')
@@ -196,8 +202,8 @@ for ticIdx in range(np.size(tickers)):
 	commission=8.99 # transaction dollars	
 	
 	netWorthRule1,actionsRule1 = ff2.backTest(rule1Orders,finData, moneyStart,commission)	# Rule 1
-	netWorthGC,actionsGC = ff2.backTest(goldOrders,finData, moneyStart,commission)	 # Gold Cross
-	netWorthSC,actionsSC = ff2.backTest(silverOrders,finData, moneyStart,commission)	 # Silver Cross
+	netWorthTek1,actionsTek1 = ff2.backTest(ordersTechnik1,finData, moneyStart,commission)	 # technique 1
+	netWorthTek2,actionsTek2 = ff2.backTestWPrice(ordersTechnik2,priceTechnik2,finData, moneyStart,commission)	 # technique 2
 			
 	
 	fig, axarr = plt.subplots(3, sharex=True,figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
@@ -207,16 +213,16 @@ for ticIdx in range(np.size(tickers)):
 	axarr[0].plot(finData.date,ma50,'k',label='50 day MA')
 	axarr[0].plot(finData.date,ma200,'y',label='200 day MA')
 	axarr[1].plot(finData.date,netWorthRule1,'k',label='netWorth Rule1')
-	axarr[1].plot(finData.date,netWorthGC,'y',label='netWorth Gold Cross')
-	axarr[1].plot(finData.date,netWorthSC,'g',label='netWorth Silver Cross')
+	#axarr[1].plot(finData.date,netWorthTek1,'y',label='netWorth Technique 1')
+	axarr[1].plot(finData.date,netWorthTek2,'g',label='netWorth Technique 2')
 	axarr[2].plot(finData.date,actionsRule1,'ok',label='Rule1 Action taken')
-	axarr[2].plot(finData.date,actionsGC,'*y',label='Gold Cross Action taken')
-	axarr[2].plot(finData.date,actionsSC,'sg',label='Silver Cross Action taken')
+	#axarr[2].plot(finData.date,actionsTek1,'*y',label='Technique 1 Action taken')
+	axarr[2].plot(finData.date,actionsTek2,'sg',label='Technique 2 Action taken')
 	axarr[2].plot(finData.date,rule1Orders,'k',label='Rule 1 Order')
-	axarr[2].plot(finData.date,goldOrders,'y',label='Gold Cross Order')
-	axarr[2].plot(finData.date,silverOrders,'g',label='Silver Cross Order')
+	#axarr[2].plot(finData.date,ordersTechnik1,'y',label='Technique 1 Order')
+	axarr[2].plot(finData.date,ordersTechnik2,'g',label='Technique 2 Order')
 	axarr[2].set_ylim([-1.1,1.1])
-	strTitle=tickers[ticIdx]+' with result Rule1=%i, GoldCross=%i, SilverCross=%i, started with %i'% (netWorthRule1[-1],netWorthGC[-1],netWorthSC[-1],moneyStart)
+	strTitle=tickers[ticIdx]+' with result Rule1=%i, Technique 1=%i, Technique 2=%i, started with %i'% (netWorthRule1[-1],netWorthTek1[-1],netWorthTek2[-1],moneyStart)
 	axarr[0].set_title(strTitle)
 	axarr[0].grid('on')
 	axarr[1].grid('on')
